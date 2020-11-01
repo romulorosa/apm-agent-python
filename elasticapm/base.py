@@ -40,6 +40,7 @@ import sys
 import threading
 import time
 import warnings
+import  contextlib
 from copy import deepcopy
 
 import elasticapm
@@ -51,6 +52,7 @@ from elasticapm.utils import cgroup, cloud, compat, is_master_process, stacks, v
 from elasticapm.utils.encoding import enforce_label_format, keyword_field, shorten, transform
 from elasticapm.utils.logging import get_logger
 from elasticapm.utils.module_import import import_string
+from elasticapm import contextmanagers
 
 __all__ = ("Client",)
 
@@ -590,3 +592,18 @@ class DummyClient(Client):
 
     def send(self, url, **kwargs):
         return None
+
+
+@contextlib.contextmanager
+def _transaction(cli: Client, transaction_type, name=None):
+    print('Begin transaction')
+    cli.begin_transaction(transaction_type)
+    yield
+    print('End transaction')
+    cli.end_transaction(name)
+
+
+def bootstrap(config):
+    cli = Client(config)
+    contextmanagers.transaction = lambda tt, name: _transaction(cli, tt, name)
+    return cli
